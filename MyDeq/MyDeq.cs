@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace MyDeq
 {
-    public class MyDeq<T> : IEnumerable<T>//, ICollection
+    public class MyDeq<T> : IEnumerable<T>, ICollection
     {
         private T[] _array;
         private int _head;       
@@ -40,14 +40,12 @@ namespace MyDeq
             get { return _size; }
         }
 
-        //bool ICollection.IsSynchronized
-        //{
-        //    get { return false; }
-        //}
+        bool ICollection.IsSynchronized
+        {
+            get { return false; }
+        }
 
-        //object ICollection.SyncRoot => this;
-
-        // Removes all Objects from the queue.
+        object ICollection.SyncRoot => this;
 
         public void EnqueueItemAtStart(T item)
         {
@@ -63,9 +61,6 @@ namespace MyDeq
             _size++;
         }
 
-        // Removes the object at the head of the queue and returns it. If the queue
-        // is empty, this method throws an
-        // InvalidOperationException.
         public T DequeueItemFromStart()
         {
             int head = _head;
@@ -77,7 +72,7 @@ namespace MyDeq
             }
 
             T removed = array[head];
-            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            //if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             {
                 array[head] = default!;
             }
@@ -104,7 +99,7 @@ namespace MyDeq
         }
         public T DequeueItemFromEnd()
         {
-            int tail = _tail - 1;
+            int tail = _tail;
             T[] array = _array;
 
             if (_size == 0)
@@ -113,7 +108,7 @@ namespace MyDeq
             }
 
             T removed = array[tail];
-            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            //if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             {
                 array[tail] = default!;
             }
@@ -154,7 +149,7 @@ namespace MyDeq
                 else
                 {
                     Array.Copy(_array, _head, newarray, 0, _array.Length - _head);
-                    Array.Copy(_array, 0, newarray, _array.Length - _head, _tail);
+                    Array.Copy(_array, 0, newarray, _array.Length - _head, _tail + 1);
                 }
             }
 
@@ -180,14 +175,14 @@ namespace MyDeq
             int tmp = index - 1;
             if (tmp == -1)
             {
-                tmp = _array.Length;
+                tmp = _array.Length - 1;
             }
             index = tmp;
         }
 
         private void ThrowForEmptyQueue()
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Deq is empty");
         }
 
         private void Grow(int capacity)
@@ -223,8 +218,84 @@ namespace MyDeq
             return GetEnumerator();
         }
 
-        
+        public void Clear()
+        {
+            if (_size != 0)
+            {
+                if (_head < _tail)
+                {
+                    Array.Clear(_array, _head, _size);
+                }
+                else
+                {
+                    Array.Clear(_array, _head, _array.Length - _head);
+                    Array.Clear(_array, 0, _tail + 1);
+                }
+                
+                _size = 0;
+            }
 
+            _head = 0;
+            _tail = 0;
+        }
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            if (array == null)
+            {
+                throw new ArgumentNullException(nameof(array));
+            }
+
+            if (arrayIndex < 0 || arrayIndex > array.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex), arrayIndex.ToString());
+            }
+
+            if (array.Length - arrayIndex < _size)
+            {
+                throw new ArgumentException("Invalid length of the array");
+            }
+
+            int numToCopy = _size;
+            if (numToCopy == 0) return;
+            try
+            {
+                int firstPart = Math.Min(_array.Length - _head, numToCopy);
+                Array.Copy(_array, _head, array, arrayIndex, firstPart);
+                numToCopy -= firstPart;
+                if (numToCopy > 0)
+                {
+                    Array.Copy(_array, 0, array, arrayIndex + _array.Length - _head, numToCopy);
+                }
+            }
+            catch (ArrayTypeMismatchException)
+            {
+                throw new ArgumentException("Invalid type of array", nameof(array));
+            }
+            
+        }
+
+        public bool Contains(T item)
+        {
+            if (_size == 0)
+            {
+                return false;
+            }
+
+            if (_head < _tail)
+            {
+                return Array.IndexOf(_array, item, _head, _size) >= 0;
+            }
+
+            // We've wrapped around. Check both partitions, the least recently enqueued first.
+            return
+                Array.IndexOf(_array, item, _head, _array.Length - _head) >= 0 ||
+                Array.IndexOf(_array, item, 0, _tail + 1) >= 0;
+        }
+        void ICollection.CopyTo(Array array, int index)
+        {
+            CopyTo(array as T[], index);
+        }
         private class Iterator : IEnumerator<T>
         {
             private MyDeq<T> _myDeq;
