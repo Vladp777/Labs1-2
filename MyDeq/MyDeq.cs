@@ -12,7 +12,6 @@ namespace MyDeq
         private int _head;       
         private int _tail;       
         private int _size;
-        //private int _version;
 
         public MyDeq()
         {
@@ -23,18 +22,49 @@ namespace MyDeq
         public MyDeq(int capacity)
         {
             if (capacity < 0)
-                throw new ArgumentOutOfRangeException(nameof(capacity), capacity.ToString());
+                throw new ArgumentOutOfRangeException(nameof(capacity));
             _array = new T[capacity];
         }
-        //public MyDeq(IEnumerable<T> collection)
+
+        public event Action<CustomEventArgs<T>> AddEvent;
+        public event Action<CustomEventArgs<T>> RemoveEvent;
+        public event Action ClearEvent;
+
+        protected void OnAddEvent(CustomEventArgs<T> e) => AddEvent?.Invoke(e);
+        protected void OnRemoveEvent(CustomEventArgs<T> e) => RemoveEvent?.Invoke(e);
+        protected void OnClearEvent() => ClearEvent?.Invoke();
+
+        //public T this[int index]
         //{
-        //    if (collection == null)
-        //        throw new ArgumentNullException(nameof(collection));
-
-        //    _array = EnumerableHelpers.ToArray(collection, out _size);
-        //    if (_size != _array.Length) _tail = _size;
+        //    get 
+        //    { 
+        //        if (_head < _tail)
+        //            return _array[_head + index];
+        //        else
+        //        {
+        //            if (_head + index < _array.Length)
+        //            {
+        //                return _array[_head + index];
+        //            }
+        //            else
+        //                return _array[index - (_array.Length - _head)];
+        //        }
+        //    }
+        //    set 
+        //    {
+        //        if (_head < _tail)
+        //            _array[_head + index] = value;
+        //        else
+        //        {
+        //            if (_head + index < _array.Length)
+        //            {
+        //                _array[_head + index] = value;
+        //            }
+        //            else
+        //                _array[index - (_array.Length - _head)]= value;
+        //        }
+        //    }
         //}
-
         public int Count
         {
             get { return _size; }
@@ -58,6 +88,8 @@ namespace MyDeq
 
             _array[_head] = item;
 
+            OnAddEvent(new CustomEventArgs<T>(item));
+
             _size++;
         }
 
@@ -78,7 +110,9 @@ namespace MyDeq
             }
             MoveNextRight(ref _head);
             _size--;
-            //_version++;
+
+            OnRemoveEvent(new CustomEventArgs<T>(removed));
+
             return removed;
         }
 
@@ -93,6 +127,8 @@ namespace MyDeq
                 MoveNextRight(ref _tail);
 
             _array[_tail] = item;
+
+            OnAddEvent(new CustomEventArgs<T>(item));
 
             _size++;
             //_version++;
@@ -115,6 +151,9 @@ namespace MyDeq
             MoveNextLeft(ref _tail);
             _size--;
             //_version++;
+
+            OnRemoveEvent(new CustomEventArgs<T>(removed));
+
             return removed;
         }
 
@@ -208,9 +247,33 @@ namespace MyDeq
             SetCapacity(newcapacity);
         }
 
+        //public IEnumerator<T> GetEnumerator()
+        //{
+        //    return new Iterator(this);
+        //}
+
+
         public IEnumerator<T> GetEnumerator()
         {
-            return new Iterator(this);
+            if (_head < _tail)
+            {
+                for (int i = 0; i < _size; i++)
+                {
+                    yield return _array[i];
+                }
+            }
+            else
+            {
+                for (int i = _head; i < _array.Length; i++)
+                {
+                    yield return _array[i];
+                }
+
+                for (int i = 0; i < _tail + 1; i++)
+                {
+                    yield return _array[i];
+                }
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -237,6 +300,8 @@ namespace MyDeq
 
             _head = 0;
             _tail = 0;
+
+            OnClearEvent();
         }
 
         public void CopyTo(T[] array, int arrayIndex)
@@ -287,7 +352,6 @@ namespace MyDeq
                 return Array.IndexOf(_array, item, _head, _size) >= 0;
             }
 
-            // We've wrapped around. Check both partitions, the least recently enqueued first.
             return
                 Array.IndexOf(_array, item, _head, _array.Length - _head) >= 0 ||
                 Array.IndexOf(_array, item, 0, _tail + 1) >= 0;
@@ -309,10 +373,6 @@ namespace MyDeq
                 _current = default;
             }
 
-            //public T Current => _current;
-
-            //object IEnumerator.Current => throw new NotImplementedException();
-
             public void Dispose()
             {
                 _index = -2;
@@ -328,29 +388,18 @@ namespace MyDeq
 
                 if (_index == _myDeq._size)
                 {
-                    // We've run past the last element
                     _index = -2;
                     _current = default;
                     return false;
                 }
 
-                // Cache some fields in locals to decrease code size
                 T[] array = _myDeq._array;
                 int capacity = array.Length;
 
-                // _index represents the 0-based index into the queue, however the queue
-                // doesn't have to start from 0 and it may not even be stored contiguously in memory.
-
-                int arrayIndex = _myDeq._head + _index; // this is the actual index into the queue's backing array
+                int arrayIndex = _myDeq._head + _index;
                 if (arrayIndex >= capacity)
                 {
-                    // NOTE: Originally we were using the modulo operator here, however
-                    // on Intel processors it has a very high instruction latency which
-                    // was slowing down the loop quite a bit.
-                    // Replacing it with simple comparison/subtraction operations sped up
-                    // the average foreach loop by 2x.
-
-                    arrayIndex -= capacity; // wrap around if needed
+                    arrayIndex -= capacity;
                 }
 
                 _current = array[arrayIndex];
@@ -380,6 +429,4 @@ namespace MyDeq
             }
         }
     }
-
-    
 }
