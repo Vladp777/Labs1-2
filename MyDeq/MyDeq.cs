@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace MyDeq
 {
-    public class MyDeq<T> : ICollection
+    public class MyDeq<T> : IEnumerable<T>//, ICollection
     {
         private T[] _array;
         private int _head;       
@@ -17,23 +19,198 @@ namespace MyDeq
             _array = Array.Empty<T>();
         }
 
-        // Creates a queue with room for capacity objects. The default grow factor
-        // is used.
+        
         public MyDeq(int capacity)
         {
             if (capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity), capacity.ToString());
             _array = new T[capacity];
         }
-        public int Count => throw new NotImplementedException();
+        //public MyDeq(IEnumerable<T> collection)
+        //{
+        //    if (collection == null)
+        //        throw new ArgumentNullException(nameof(collection));
 
-        public bool IsSynchronized => throw new NotImplementedException();
+        //    _array = EnumerableHelpers.ToArray(collection, out _size);
+        //    if (_size != _array.Length) _tail = _size;
+        //}
 
-        public object SyncRoot => throw new NotImplementedException();
-
-        public void CopyTo(Array array, int index)
+        public int Count
         {
-            throw new NotImplementedException();
+            get { return _size; }
+        }
+
+        //bool ICollection.IsSynchronized
+        //{
+        //    get { return false; }
+        //}
+
+        //object ICollection.SyncRoot => this;
+
+        // Removes all Objects from the queue.
+
+        public void EnqueueItemAtStart(T item)
+        {
+            if (_size == _array.Length)
+            {
+                Grow(_size + 1);
+            }
+            if(_size != 0)
+                MoveNextLeft(ref _head);
+
+            _array[_head] = item;
+
+            _size++;
+        }
+
+        // Removes the object at the head of the queue and returns it. If the queue
+        // is empty, this method throws an
+        // InvalidOperationException.
+        public T DequeueItemFromStart()
+        {
+            int head = _head;
+            T[] array = _array;
+
+            if (_size == 0)
+            {
+                ThrowForEmptyQueue();
+            }
+
+            T removed = array[head];
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            {
+                array[head] = default!;
+            }
+            MoveNextRight(ref _head);
+            _size--;
+            //_version++;
+            return removed;
+        }
+
+        public void EnqueueItemAtEnd(T item)
+        {
+            if (_size == _array.Length)
+            {
+                Grow(_size + 1);
+            }
+
+            if (_size != 0)
+                MoveNextRight(ref _tail);
+
+            _array[_tail] = item;
+
+            _size++;
+            //_version++;
+        }
+        public T DequeueItemFromEnd()
+        {
+            int tail = _tail - 1;
+            T[] array = _array;
+
+            if (_size == 0)
+            {
+                ThrowForEmptyQueue();
+            }
+
+            T removed = array[tail];
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            {
+                array[tail] = default!;
+            }
+            MoveNextLeft(ref _tail);
+            _size--;
+            //_version++;
+            return removed;
+        }
+
+        public T PeekItemFromStart()
+        {
+            if (_size == 0)
+            {
+                ThrowForEmptyQueue();
+            }
+
+            return _array[_head];
+        }
+        public T PeekItemFromEnd()
+        {
+            if (_size == 0)
+            {
+                ThrowForEmptyQueue();
+            }
+
+            return _array[_tail];
+        }
+
+        private void SetCapacity(int capacity)
+        {
+            T[] newarray = new T[capacity];
+            if (_size > 0)
+            {
+                if (_head < _tail)
+                {
+                    Array.Copy(_array, _head, newarray, 0, _size);
+                }
+                else
+                {
+                    Array.Copy(_array, _head, newarray, 0, _array.Length - _head);
+                    Array.Copy(_array, 0, newarray, _array.Length - _head, _tail);
+                }
+            }
+
+            _array = newarray;
+            _head = 0;
+            //???
+            _tail = _size - 1;
+            //_version++;
+        }
+
+        private void MoveNextRight(ref int index)
+        {
+            int tmp = index + 1;
+            if (tmp == _array.Length)
+            {
+                tmp = 0;
+            }
+            index = tmp;
+        }
+
+        private void MoveNextLeft(ref int index)
+        {
+            int tmp = index - 1;
+            if (tmp == -1)
+            {
+                tmp = _array.Length;
+            }
+            index = tmp;
+        }
+
+        private void ThrowForEmptyQueue()
+        {
+            throw new InvalidOperationException();
+        }
+
+        private void Grow(int capacity)
+        {
+            Debug.Assert(_array.Length < capacity);
+
+            const int GrowFactor = 2;
+            const int MinimumGrow = 4;
+
+            int newcapacity = GrowFactor * _array.Length;
+
+            // Allow the list to grow to maximum possible capacity (~2G elements) before encountering overflow.
+            // Note that this check works even when _items.Length overflowed thanks to the (uint) cast
+            if ((uint)newcapacity > Array.MaxLength) newcapacity = Array.MaxLength;
+
+            // Ensure minimum growth is respected.
+            newcapacity = Math.Max(newcapacity, _array.Length + MinimumGrow);
+
+            // If the computed capacity is still less than specified, set to the original argument.
+            // Capacities exceeding Array.MaxLength will be surfaced as OutOfMemoryException by Array.Resize.
+            if (newcapacity < capacity) newcapacity = capacity;
+
+            SetCapacity(newcapacity);
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -45,6 +222,8 @@ namespace MyDeq
         {
             return GetEnumerator();
         }
+
+        
 
         private class Iterator : IEnumerator<T>
         {
