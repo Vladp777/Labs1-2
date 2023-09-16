@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MyDeq\MyDeq.csproj" />
+    <Reference Include="MyDeq">
+      <HintPath>..\MyDeq\bin\Debug\net6.0\MyDeq.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

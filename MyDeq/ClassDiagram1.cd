@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="MyDeq.CustomEventArgs&lt;T&gt;">
+    <Position X="6" Y="2" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>CustomEventArgs.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MyDeq.MyDeq&lt;T&gt;">
+    <Position X="8.5" Y="2" Width="2.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="MyDeq.MyDeq&lt;T&gt;.Iterator">
+        <TypeIdentifier>
+          <NewMemberFileName>MyDeq.cs</NewMemberFileName>
+        </TypeIdentifier>
+        <Lollipop Position="0.2" />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAIgABCEgUBhBAAAAAiAQCAAAAAAEEAAAQCgJRKEI=</HashCode>
+      <FileName>MyDeq.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

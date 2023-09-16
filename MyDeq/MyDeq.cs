@@ -115,7 +115,6 @@ namespace MyDeq
 
             return removed;
         }
-
         public void EnqueueItemAtEnd(T item)
         {
             if (_size == _array.Length)
@@ -156,7 +155,6 @@ namespace MyDeq
 
             return removed;
         }
-
         public T PeekItemFromStart()
         {
             if (_size == 0)
@@ -251,7 +249,6 @@ namespace MyDeq
         //{
         //    return new Iterator(this);
         //}
-
 
         public IEnumerator<T> GetEnumerator()
         {
