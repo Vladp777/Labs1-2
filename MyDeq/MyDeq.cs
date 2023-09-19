@@ -26,12 +26,12 @@ namespace MyDeq
             _array = new T[capacity];
         }
 
-        public event Action<CustomEventArgs<T>> AddEvent;
-        public event Action<CustomEventArgs<T>> RemoveEvent;
+        public event Action<T> AddEvent;
+        public event Action<T> RemoveEvent;
         public event Action ClearEvent;
 
-        protected void OnAddEvent(CustomEventArgs<T> e) => AddEvent?.Invoke(e);
-        protected void OnRemoveEvent(CustomEventArgs<T> e) => RemoveEvent?.Invoke(e);
+        protected void OnAddEvent(T e) => AddEvent?.Invoke(e);
+        protected void OnRemoveEvent(T e) => RemoveEvent?.Invoke(e);
         protected void OnClearEvent() => ClearEvent?.Invoke();
 
         //public T this[int index]
@@ -88,7 +88,7 @@ namespace MyDeq
 
             _array[_head] = item;
 
-            OnAddEvent(new CustomEventArgs<T>(item));
+            OnAddEvent(item);
 
             _size++;
         }
@@ -111,7 +111,7 @@ namespace MyDeq
             MoveNextRight(ref _head);
             _size--;
 
-            OnRemoveEvent(new CustomEventArgs<T>(removed));
+            OnRemoveEvent(removed);
 
             return removed;
         }
@@ -127,7 +127,7 @@ namespace MyDeq
 
             _array[_tail] = item;
 
-            OnAddEvent(new CustomEventArgs<T>(item));
+            OnAddEvent(item);
 
             _size++;
             //_version++;
@@ -151,7 +151,7 @@ namespace MyDeq
             _size--;
             //_version++;
 
-            OnRemoveEvent(new CustomEventArgs<T>(removed));
+            OnRemoveEvent(removed);
 
             return removed;
         }

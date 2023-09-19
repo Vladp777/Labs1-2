@@ -3,9 +3,13 @@ using System.Collections;
 
 var a = new MyDeq<int>(10);
 
-a.AddEvent += AddEventHandler;
-a.RemoveEvent += RemoveEventHandler;
-a.ClearEvent += ClearEventHandler;
+//a.AddEvent += AddEventHandler;
+//a.RemoveEvent += RemoveEventHandler;
+//a.ClearEvent += ClearEventHandler;
+
+a.AddEvent += (args) => Console.WriteLine("Element was added to deq: " + args.ToString());
+a.RemoveEvent += (args) => Console.WriteLine("Element was removed from deq: " + args.ToString());
+a.ClearEvent += () => Console.WriteLine("The deq was cleared");
 
 a.EnqueueItemAtStart(20);
 a.EnqueueItemAtStart(100);
@@ -65,12 +69,12 @@ void ClearEventHandler()
     Console.WriteLine("The deq was cleared");
 }
 
-void RemoveEventHandler(CustomEventArgs<int> obj)
+void RemoveEventHandler(int obj)
 {
     Console.WriteLine("Element was removed from deq");
 }
 
-void AddEventHandler(CustomEventArgs<int> obj)
+void AddEventHandler(int obj)
 {
     Console.WriteLine("Element was added to deq");
 }
