@@ -13,16 +13,21 @@ namespace MyDeq
         private int _tail;       
         private int _size;
 
+        private const int _defaultCapacity = 10;
+
         public MyDeq()
         {
             _array = Array.Empty<T>();
         }
 
-        
         public MyDeq(int capacity)
         {
             if (capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
+            if (capacity < 10)
+            {
+                _array = new T[_defaultCapacity];
+            }
             _array = new T[capacity];
         }
 
@@ -34,37 +39,6 @@ namespace MyDeq
         protected void OnRemoveEvent(T e) => RemoveEvent?.Invoke(e);
         protected void OnClearEvent() => ClearEvent?.Invoke();
 
-        //public T this[int index]
-        //{
-        //    get 
-        //    { 
-        //        if (_head < _tail)
-        //            return _array[_head + index];
-        //        else
-        //        {
-        //            if (_head + index < _array.Length)
-        //            {
-        //                return _array[_head + index];
-        //            }
-        //            else
-        //                return _array[index - (_array.Length - _head)];
-        //        }
-        //    }
-        //    set 
-        //    {
-        //        if (_head < _tail)
-        //            _array[_head + index] = value;
-        //        else
-        //        {
-        //            if (_head + index < _array.Length)
-        //            {
-        //                _array[_head + index] = value;
-        //            }
-        //            else
-        //                _array[index - (_array.Length - _head)]= value;
-        //        }
-        //    }
-        //}
         public int Count
         {
             get { return _size; }
@@ -81,8 +55,9 @@ namespace MyDeq
         {
             if (_size == _array.Length)
             {
-                Grow(_size + 1);
+                ResizeQueue();
             }
+
             if(_size != 0)
                 MoveNextLeft(ref _head);
 
@@ -100,15 +75,15 @@ namespace MyDeq
 
             if (_size == 0)
             {
-                ThrowForEmptyQueue();
+                throw new InvalidOperationException("Deq is empty");
             }
 
             T removed = array[head];
-            //if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            {
-                array[head] = default!;
-            }
+        
+            array[head] = default!;
+            
             MoveNextRight(ref _head);
+
             _size--;
 
             OnRemoveEvent(removed);
@@ -119,7 +94,7 @@ namespace MyDeq
         {
             if (_size == _array.Length)
             {
-                Grow(_size + 1);
+                ResizeQueue();
             }
 
             if (_size != 0)
@@ -130,7 +105,6 @@ namespace MyDeq
             OnAddEvent(item);
 
             _size++;
-            //_version++;
         }
         public T DequeueItemFromEnd()
         {
@@ -139,17 +113,16 @@ namespace MyDeq
 
             if (_size == 0)
             {
-                ThrowForEmptyQueue();
+                throw new InvalidOperationException("Deq is empty");
             }
 
             T removed = array[tail];
-            //if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            {
-                array[tail] = default!;
-            }
+            
+            array[tail] = default!;
+            
             MoveNextLeft(ref _tail);
+
             _size--;
-            //_version++;
 
             OnRemoveEvent(removed);
 
@@ -159,7 +132,7 @@ namespace MyDeq
         {
             if (_size == 0)
             {
-                ThrowForEmptyQueue();
+                throw new InvalidOperationException("Deq is empty");
             }
 
             return _array[_head];
@@ -168,33 +141,10 @@ namespace MyDeq
         {
             if (_size == 0)
             {
-                ThrowForEmptyQueue();
+                throw new InvalidOperationException("Deq is empty");
             }
 
             return _array[_tail];
-        }
-
-        private void SetCapacity(int capacity)
-        {
-            T[] newarray = new T[capacity];
-            if (_size > 0)
-            {
-                if (_head < _tail)
-                {
-                    Array.Copy(_array, _head, newarray, 0, _size);
-                }
-                else
-                {
-                    Array.Copy(_array, _head, newarray, 0, _array.Length - _head);
-                    Array.Copy(_array, 0, newarray, _array.Length - _head, _tail + 1);
-                }
-            }
-
-            _array = newarray;
-            _head = 0;
-            //???
-            _tail = _size - 1;
-            //_version++;
         }
 
         private void MoveNextRight(ref int index)
@@ -217,32 +167,24 @@ namespace MyDeq
             index = tmp;
         }
 
-        private void ThrowForEmptyQueue()
+        private void ResizeQueue()
         {
-            throw new InvalidOperationException("Deq is empty");
-        }
+            int newcapacity = 2 * _array.Length;
 
-        private void Grow(int capacity)
-        {
-            Debug.Assert(_array.Length < capacity);
+            if(Array.MaxLength == _array.Length)
+                throw new OverflowException("Deq is overflow");
+            
+            if((uint)newcapacity > Array.MaxLength)
+                newcapacity = Array.MaxLength;
 
-            const int GrowFactor = 2;
-            const int MinimumGrow = 4;
+            T[] newarray = new T[newcapacity];
 
-            int newcapacity = GrowFactor * _array.Length;
+            CopyTo(newarray, 0);
+            
+            _array = newarray;
+            _head = 0;
 
-            // Allow the list to grow to maximum possible capacity (~2G elements) before encountering overflow.
-            // Note that this check works even when _items.Length overflowed thanks to the (uint) cast
-            if ((uint)newcapacity > Array.MaxLength) newcapacity = Array.MaxLength;
-
-            // Ensure minimum growth is respected.
-            newcapacity = Math.Max(newcapacity, _array.Length + MinimumGrow);
-
-            // If the computed capacity is still less than specified, set to the original argument.
-            // Capacities exceeding Array.MaxLength will be surfaced as OutOfMemoryException by Array.Resize.
-            if (newcapacity < capacity) newcapacity = capacity;
-
-            SetCapacity(newcapacity);
+            _tail = _size - 1;
         }
 
         //public IEnumerator<T> GetEnumerator()
@@ -282,16 +224,22 @@ namespace MyDeq
         {
             if (_size != 0)
             {
-                if (_head < _tail)
+                int numToClear = _size;
+
+                if (numToClear == 0)
+                    return;
+
+                int firstPart = Math.Min(_array.Length - _head, numToClear);
+
+                Array.Clear(_array, _head,  firstPart);
+
+                numToClear -= firstPart;
+
+                if (numToClear > 0)
                 {
-                    Array.Clear(_array, _head, _size);
+                    Array.Clear(_array, 0, numToClear);
                 }
-                else
-                {
-                    Array.Clear(_array, _head, _array.Length - _head);
-                    Array.Clear(_array, 0, _tail + 1);
-                }
-                
+
                 _size = 0;
             }
 
@@ -301,7 +249,7 @@ namespace MyDeq
             OnClearEvent();
         }
 
-        public void CopyTo(T[] array, int arrayIndex)
+        public void CopyTo(T[]? array, int arrayIndex)
         {
             if (array == null)
             {
@@ -310,7 +258,7 @@ namespace MyDeq
 
             if (arrayIndex < 0 || arrayIndex > array.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(arrayIndex), arrayIndex.ToString());
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
             }
 
             if (array.Length - arrayIndex < _size)
@@ -319,22 +267,20 @@ namespace MyDeq
             }
 
             int numToCopy = _size;
-            if (numToCopy == 0) return;
-            try
-            {
-                int firstPart = Math.Min(_array.Length - _head, numToCopy);
-                Array.Copy(_array, _head, array, arrayIndex, firstPart);
-                numToCopy -= firstPart;
-                if (numToCopy > 0)
-                {
-                    Array.Copy(_array, 0, array, arrayIndex + _array.Length - _head, numToCopy);
-                }
-            }
-            catch (ArrayTypeMismatchException)
-            {
-                throw new ArgumentException("Invalid type of array", nameof(array));
-            }
+
+            if (numToCopy == 0) 
+                return;
             
+            int firstPart = Math.Min(_array.Length - _head, numToCopy);
+
+            Array.Copy(_array, _head, array, arrayIndex, firstPart);
+
+            numToCopy -= firstPart;
+
+            if (numToCopy > 0)
+            {
+                Array.Copy(_array, 0, array, arrayIndex + _array.Length - _head, numToCopy);
+            }
         }
 
         public bool Contains(T item)
@@ -353,13 +299,14 @@ namespace MyDeq
                 Array.IndexOf(_array, item, _head, _array.Length - _head) >= 0 ||
                 Array.IndexOf(_array, item, 0, _tail + 1) >= 0;
         }
+
         void ICollection.CopyTo(Array array, int index)
         {
             CopyTo(array as T[], index);
         }
-        private class Iterator : IEnumerator<T>
+        private class Iterator : IEnumerator
         {
-            private MyDeq<T> _myDeq;
+            private readonly MyDeq<T> _myDeq;
             private T? _current;
             private int _index;
 
@@ -367,12 +314,6 @@ namespace MyDeq
             {
                 _myDeq = myDeq;
                 _index = -1;
-                _current = default;
-            }
-
-            public void Dispose()
-            {
-                _index = -2;
                 _current = default;
             }
 
@@ -390,16 +331,16 @@ namespace MyDeq
                     return false;
                 }
 
-                T[] array = _myDeq._array;
-                int capacity = array.Length;
+                int capacity = _myDeq._array.Length;
 
                 int arrayIndex = _myDeq._head + _index;
+
                 if (arrayIndex >= capacity)
                 {
                     arrayIndex -= capacity;
                 }
 
-                _current = array[arrayIndex];
+                _current = _myDeq._array[arrayIndex];
                 return true;
             }
             public T Current
@@ -411,7 +352,6 @@ namespace MyDeq
                     return _current;
                 }
             }
-
 
             object? IEnumerator.Current
             {

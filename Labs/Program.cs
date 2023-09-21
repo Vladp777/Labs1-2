@@ -1,14 +1,9 @@
 ﻿using MyDeq;
-using System.Collections;
 
 var a = new MyDeq<int>(10);
 
-//a.AddEvent += AddEventHandler;
-//a.RemoveEvent += RemoveEventHandler;
-//a.ClearEvent += ClearEventHandler;
-
-a.AddEvent += (args) => Console.WriteLine("Element was added to deq: " + args.ToString());
-a.RemoveEvent += (args) => Console.WriteLine("Element was removed from deq: " + args.ToString());
+a.AddEvent += (args) => Console.WriteLine("Element was added to deq");
+a.RemoveEvent += (args) => Console.WriteLine("Element was removed from deq");
 a.ClearEvent += () => Console.WriteLine("The deq was cleared");
 
 a.EnqueueItemAtStart(20);
@@ -35,17 +30,14 @@ a.DequeueItemFromStart();
 
 var result = a.Where(x => x.GetHashCode() > 5);
 
+Console.WriteLine();
+
 foreach (var item in a)
 {
     Console.WriteLine(item);
 }
 
 Console.WriteLine();
-
-//for (int i = 0; i < a.Count; i++)
-//{
-//    Console.WriteLine(a[i]);
-//}
 
 var tail = a.PeekItemFromEnd();
 Console.WriteLine("Tail: " + tail);
@@ -59,25 +51,20 @@ var arr = new int[15];
 
 a.CopyTo(arr, 3);
 
+Console.WriteLine("Queue:");
+foreach (var item in a)
+{
+    Console.Write(item + ", ");
+}
+Console.WriteLine();
+
+Console.WriteLine("Copy Queue:");
 foreach (var item in arr)
 { 
-    Console.WriteLine(item); 
+    Console.Write(item + ", "); 
 }
 
-void ClearEventHandler()
-{
-    Console.WriteLine("The deq was cleared");
-}
-
-void RemoveEventHandler(int obj)
-{
-    Console.WriteLine("Element was removed from deq");
-}
-
-void AddEventHandler(int obj)
-{
-    Console.WriteLine("Element was added to deq");
-}
+Console.WriteLine();
 
 var h = a.Any();
 Console.WriteLine(h);
