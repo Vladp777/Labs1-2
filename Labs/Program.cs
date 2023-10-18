@@ -30,6 +30,9 @@ a.DequeueItemFromStart();
 
 var result = a.Where(x => x.GetHashCode() > 5);
 
+var deq = new MyDeq<string>();
+deq.EnqueueItemAtStart(null);
+
 Console.WriteLine();
 
 foreach (var item in a)
@@ -68,5 +71,27 @@ Console.WriteLine();
 
 var h = a.Any();
 Console.WriteLine(h);
+
+Console.WriteLine();
+
+var hh = new MyDeq<int>();
+for (int i = 0; i < 15; i++)
+{
+    hh.EnqueueItemAtEnd(i);
+}
+
+for(int i = 0;  i < 15; i++)
+{
+    _ = hh.DequeueItemFromEnd();
+}
+
+
+
+var enumerator= hh.GetEnumerator();
+while (enumerator.MoveNext()) { 
+    Console.WriteLine(enumerator.Current);}
+
+
+
 
 Console.ReadLine();

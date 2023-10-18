@@ -14,10 +14,11 @@ namespace MyDeq
         private int _size;
 
         private const int _defaultCapacity = 10;
+        private const int _maxArrayLength = 2146435071;
 
         public MyDeq()
         {
-            _array = Array.Empty<T>();
+            _array = new T[_defaultCapacity];
         }
 
         public MyDeq(int capacity)
@@ -27,6 +28,7 @@ namespace MyDeq
             if (capacity < 10)
             {
                 _array = new T[_defaultCapacity];
+                return;
             }
             _array = new T[capacity];
         }
@@ -39,15 +41,9 @@ namespace MyDeq
         protected void OnRemoveEvent(T e) => RemoveEvent?.Invoke(e);
         protected void OnClearEvent() => ClearEvent?.Invoke();
 
-        public int Count
-        {
-            get { return _size; }
-        }
+        public int Count => _size;
 
-        bool ICollection.IsSynchronized
-        {
-            get { return false; }
-        }
+        bool ICollection.IsSynchronized => false;
 
         object ICollection.SyncRoot => this;
 
@@ -55,7 +51,7 @@ namespace MyDeq
         {
             if (_size == _array.Length)
             {
-                ResizeQueue();
+                ResizeDequeue();
             }
 
             if(_size != 0)
@@ -82,7 +78,8 @@ namespace MyDeq
         
             array[head] = default!;
             
-            MoveNextRight(ref _head);
+            if(_size != 1)
+                MoveNextRight(ref _head);
 
             _size--;
 
@@ -94,7 +91,7 @@ namespace MyDeq
         {
             if (_size == _array.Length)
             {
-                ResizeQueue();
+                ResizeDequeue();
             }
 
             if (_size != 0)
@@ -119,8 +116,9 @@ namespace MyDeq
             T removed = array[tail];
             
             array[tail] = default!;
-            
-            MoveNextLeft(ref _tail);
+
+            if (_size != 1)
+                MoveNextLeft(ref _tail);
 
             _size--;
 
@@ -167,15 +165,9 @@ namespace MyDeq
             index = tmp;
         }
 
-        private void ResizeQueue()
+        private void ResizeDequeue()
         {
             int newcapacity = 2 * _array.Length;
-
-            if(Array.MaxLength == _array.Length)
-                throw new OverflowException("Deq is overflow");
-            
-            if((uint)newcapacity > Array.MaxLength)
-                newcapacity = Array.MaxLength;
 
             T[] newarray = new T[newcapacity];
 
@@ -187,33 +179,38 @@ namespace MyDeq
             _tail = _size - 1;
         }
 
-        //public IEnumerator<T> GetEnumerator()
-        //{
-        //    return new Iterator(this);
-        //}
-
         public IEnumerator<T> GetEnumerator()
         {
-            if (_head < _tail)
-            {
-                for (int i = 0; i < _size; i++)
-                {
-                    yield return _array[i];
-                }
-            }
-            else
-            {
-                for (int i = _head; i < _array.Length; i++)
-                {
-                    yield return _array[i];
-                }
-
-                for (int i = 0; i < _tail + 1; i++)
-                {
-                    yield return _array[i];
-                }
-            }
+            return new Iterator<T>(this);
         }
+
+        //public IEnumerator<T> GetEnumerator()
+        //{
+        //    if (_size == 0)
+        //    {
+        //        yield break;
+        //    }
+
+        //    if (_head < _tail)
+        //    {
+        //        for (int i = 0; i < _size; i++)
+        //        {
+        //            yield return _array[i];
+        //        }
+        //    }
+        //    else
+        //    {
+        //        for (int i = _head; i < _array.Length; i++)
+        //        {
+        //            yield return _array[i];
+        //        }
+
+        //        for (int i = 0; i < _tail + 1; i++)
+        //        {
+        //            yield return _array[i];
+        //        }
+        //    }
+        //}
 
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -225,9 +222,6 @@ namespace MyDeq
             if (_size != 0)
             {
                 int numToClear = _size;
-
-                if (numToClear == 0)
-                    return;
 
                 int firstPart = Math.Min(_array.Length - _head, numToClear);
 
@@ -285,12 +279,17 @@ namespace MyDeq
 
         public bool Contains(T item)
         {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
             if (_size == 0)
             {
                 return false;
             }
 
-            if (_head < _tail)
+            if (_head <= _tail)
             {
                 return Array.IndexOf(_array, item, _head, _size) >= 0;
             }
@@ -304,7 +303,7 @@ namespace MyDeq
         {
             CopyTo(array as T[], index);
         }
-        private class Iterator : IEnumerator
+        public class Iterator<T> : IEnumerator<T>
         {
             private readonly MyDeq<T> _myDeq;
             private T? _current;
@@ -319,50 +318,41 @@ namespace MyDeq
 
             public bool MoveNext()
             {
-                if (_index == -2)
-                    return false;
-
                 _index++;
 
-                if (_index == _myDeq._size)
+                if(_index < _myDeq._size)
                 {
-                    _index = -2;
-                    _current = default;
-                    return false;
+                    int capacity = _myDeq._array.Length;
+
+                    int arrayIndex = _myDeq._head + _index;
+
+                    if (arrayIndex >= capacity)
+                    {
+                        arrayIndex -= capacity;
+                    }
+
+                    _current = _myDeq._array[arrayIndex];
+                    return true;
                 }
 
-                int capacity = _myDeq._array.Length;
-
-                int arrayIndex = _myDeq._head + _index;
-
-                if (arrayIndex >= capacity)
-                {
-                    arrayIndex -= capacity;
-                }
-
-                _current = _myDeq._array[arrayIndex];
-                return true;
+                _current = default;
+                return false;
             }
-            public T Current
-            {
-                get
-                {
-                    if (_current == null)
-                        throw new InvalidOperationException("Enumeration has not been started ot it is already finished");
-                    return _current;
-                }
-            }
+            public T Current => _current;
 
-            object? IEnumerator.Current
-            {
-                get { return Current; }
-            }
+            object? IEnumerator.Current => Current;
+            
 
             void IEnumerator.Reset()
             {
                 
                 _index = -1;
                 _current = default;
+            }
+
+            public void Dispose()
+            {
+                
             }
         }
     }
